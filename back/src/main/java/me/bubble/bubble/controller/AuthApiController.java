@@ -1,22 +1,18 @@
 package me.bubble.bubble.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import me.bubble.bubble.config.jwt.JwtTokenProvider;
 import me.bubble.bubble.domain.User;
 import me.bubble.bubble.dto.*;
+import me.bubble.bubble.exception.InappropriatePayloadException;
+import me.bubble.bubble.exception.InappropriateProviderException;
+import me.bubble.bubble.exception.UserNotFoundException;
 import me.bubble.bubble.service.AuthService;
 import me.bubble.bubble.service.UserService;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @RestController
@@ -28,95 +24,42 @@ public class AuthApiController {
     @PostMapping("/api/auth/access")
     public ApiResponse<AccessTokenResponse> getAccessToken(@RequestBody AccessTokenRequest request) {
         if (request.getProvider().equals("KAKAO")) {
-            try {
-                String[] info = authService.getKakaoOAuthId(request.getCode(), request.getRedirect_uri());
+            String[] info = authService.getKakaoOAuthId(request.getCode(), request.getRedirect_uri());
+            String accessToken = CheckAndSaveUserAndReturnToken(request.getProvider(), info);
+            AccessTokenResponse accessTokenResponse = new AccessTokenResponse(accessToken);
 
-                String accessToken = CheckAndSaveUserAndReturnToken(request.getProvider(), info);
-                if (accessToken != null) {
-                    AccessTokenResponse accessTokenResponse = new AccessTokenResponse(accessToken);
-
-                    return ApiResponse.<AccessTokenResponse>builder()
-                            .code("OK")
-                            .message("")
-                            .data(accessTokenResponse)
-                            .build();
-                } else {
-                    return ApiResponse.<AccessTokenResponse>builder()
-                            .code("INAPPROPRATE_PAYLOAD")
-                            .message("부적절한 요청입니다.")
-                            .data(null)
-                            .build();
-                }
-
-
-            } catch (Exception ex) {
-                return ApiResponse.<AccessTokenResponse>builder()
-                        .code("INAPPROPRATE_PAYLOAD")
-                        .message("부적절한 요청입니다.")
-                        .data(null)
-                        .build();
-            }
+            return ApiResponse.<AccessTokenResponse>builder()
+                    .code("OK")
+                    .message("")
+                    .data(accessTokenResponse)
+                    .build();
 
         } else if (request.getProvider().equals("GOOGLE")) {
-            try {
-                String[] info = authService.getGoogleOAuthId(request.getCode(), request.getRedirect_uri());
+            String[] info = authService.getGoogleOAuthId(request.getCode(), request.getRedirect_uri());
 
-                String accessToken = CheckAndSaveUserAndReturnToken(request.getProvider(), info);
-                if (accessToken != null) {
-                    AccessTokenResponse accessTokenResponse = new AccessTokenResponse(accessToken);
-                    return ApiResponse.<AccessTokenResponse>builder()
-                            .code("OK")
-                            .message("")
-                            .data(accessTokenResponse)
-                            .build();
-                } else {
-                    return ApiResponse.<AccessTokenResponse>builder()
-                            .code("INAPPROPRATE_PAYLOAD")
-                            .message("부적절한 요청입니다.")
-                            .data(null)
-                            .build();
-                }
-
-
-
-            } catch (Exception ex) {
-                return ApiResponse.<AccessTokenResponse>builder()
-                        .code("INAPPROPRATE_PAYLOAD")
-                        .message("부적절한 요청입니다.")
-                        .data(null)
-                        .build();
-            }
-
-
-        } else {
+            String accessToken = CheckAndSaveUserAndReturnToken(request.getProvider(), info);
+            AccessTokenResponse accessTokenResponse = new AccessTokenResponse(accessToken);
             return ApiResponse.<AccessTokenResponse>builder()
-                    .code("INAPPROPRATE_PAYLOAD")
-                    .message("부적절한 요청입니다.")
-                    .data(null)
+                    .code("OK")
+                    .message("")
+                    .data(accessTokenResponse)
                     .build();
         }
-//        @GetMapping("/auth/logout")
-//    public String logout (HttpServletRequest request, HttpServletResponse response) {
-//        new SecurityContextLogoutHandler().logout(request, response,
-//                SecurityContextHolder.getContext().getAuthentication());
-//        return "redirect:/login";
-//    }
+        throw new InappropriateProviderException("Inapproprate provider");
     }
 
     private String CheckAndSaveUserAndReturnToken (String provider, String[] info) {
         String oAuthId = info[0];
         String email = info[1];
         String name = info[2];
-        Optional<User> userOptional = userService.findUserByOauthId(oAuthId);
-        if (userOptional.isPresent()) { //OAuthId로 유저를 발견한 경우
-            User user = userOptional.get();
-
+        try { // 해당 유저가 존재할 때
+            User user = userService.findUserByOauthId(oAuthId);
             if (user.getDeletedAt() == null) { // 삭제되지 않은 경우 토큰 새로 생성 후 리턴
                 return jwtTokenProvider.generateToken(oAuthId);
             } else {
-                return null;
+                throw new InappropriatePayloadException("Inappropriate Payload");
             }
-        } else {
+        } catch (UserNotFoundException ex) {
             User createdUser = userService.createUser(oAuthId, provider, email, name, null, null);
             return jwtTokenProvider.generateToken(oAuthId);
         }

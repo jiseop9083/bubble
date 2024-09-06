@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import me.bubble.bubble.domain.User;
 import me.bubble.bubble.domain.Workspace;
+import me.bubble.bubble.exception.WorkspaceNotFoundException;
 import me.bubble.bubble.repository.WorkspaceRepository;
 import org.hibernate.jdbc.Work;
 import org.springframework.stereotype.Service;
@@ -18,10 +19,9 @@ import java.util.UUID;
 public class WorkspaceService {
     private final WorkspaceRepository workspaceRepository;
 
-
     public Workspace findWorkspaceById(UUID id) {
         return workspaceRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Not Found " + id));
+                .orElseThrow(() -> new WorkspaceNotFoundException("Workspace Not Found " + id));
     }
 
     public List<Workspace> getAllWorkspacesByUser(User user) {
@@ -38,19 +38,6 @@ public class WorkspaceService {
         return workspaceRepository.save(workspace);
     }
 
-    public Optional<Workspace> findByUserAndName(User user, String name) {
-        return workspaceRepository.findByUserAndName(user, name);
-    }
-
-    @Transactional
-    public void updateDeletedAt(Workspace workspace) {
-
-        workspace.setDeletedAt(LocalDateTime.now());
-
-        // 변경 사항 저장
-        workspaceRepository.save(workspace);
-    }
-
     @Transactional
     public Workspace createWorkspace(String name, String theme, User user) {
 
@@ -65,5 +52,11 @@ public class WorkspaceService {
 
         // 저장
         return workspaceRepository.save(workspace);
+    }
+
+    public void updateDeletedAt(Workspace workspace) {
+        workspace.setDeletedAt(LocalDateTime.now());
+
+        workspaceRepository.save(workspace);
     }
 }

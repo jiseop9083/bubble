@@ -2,6 +2,7 @@ package me.bubble.bubble.util;
 
 import lombok.RequiredArgsConstructor;
 import me.bubble.bubble.domain.User;
+import me.bubble.bubble.exception.UserNotAuthenticatedException;
 import me.bubble.bubble.service.UserService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +30,6 @@ public class SecurityUtil {
         }
 
         // 인증되지 않은 경우 예외 처리 또는 null 반환 (예시에서는 예외 처리)
-        throw new IllegalStateException("User not authenticated");
+        throw new UserNotAuthenticatedException("User Authentication Failed");
     }
 }

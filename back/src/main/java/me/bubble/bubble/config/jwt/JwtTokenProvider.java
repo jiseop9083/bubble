@@ -64,7 +64,6 @@ public class JwtTokenProvider {
         me.bubble.bubble.domain.User user = userRepository.findByOauthId(oauthId) // 우리가 만든 User 객체
                 .orElseThrow(() -> new UsernameNotFoundException("Invalid OAuth ID: " + oauthId));
         if (user.getDeletedAt() != null) { // 삭제된 경우 예외를 던진다.
-            System.out.println("예외 발생");
             throw new DisabledException("Deleted User");
         }
 

@@ -3,11 +3,11 @@ package me.bubble.bubble.service;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import me.bubble.bubble.domain.User;
+import me.bubble.bubble.exception.UserNotFoundException;
 import me.bubble.bubble.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service
@@ -28,15 +28,16 @@ public class UserService {
         return userRepository.save(user);  // DB에 저장 후 저장된 객체 반환
     }
 
-    public Optional<User> findUserByOauthId(String oauthId) {
-        return userRepository.findByOauthId(oauthId);
+    public User findUserByOauthId(String oauthId) {
+        return userRepository.findByOauthId(oauthId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     @Transactional
     public User updateUserNameAndEmail(String oAuthId, String newName, String newEmail) {
         // 사용자 조회
         User user = userRepository.findByOauthId(oAuthId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다. ID: " + oAuthId));
+                .orElseThrow(() -> new UserNotFoundException("User not found " + oAuthId));
 
         // 이름과 이메일 업데이트
         user.setName(newName);
@@ -50,7 +51,7 @@ public class UserService {
     public void updateDeletedAtByOauthId(String oauthId) {
         // OAuthId로 User를 조회
         User user = userRepository.findByOauthId(oauthId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 OAuth ID를 가진 사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         // deletedAt 필드를 현재 시간으로 업데이트
         user.setDeletedAt(LocalDateTime.now());

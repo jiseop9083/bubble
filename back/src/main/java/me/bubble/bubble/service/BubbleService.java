@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import me.bubble.bubble.domain.Bubble;
 import me.bubble.bubble.domain.Curve;
 import me.bubble.bubble.domain.Workspace;
+import me.bubble.bubble.exception.BubbleNotFoundException;
+import me.bubble.bubble.exception.NoBubbleInWorkspaceException;
 import me.bubble.bubble.repository.BubbleRepository;
 import org.hibernate.jdbc.Work;
 import org.springframework.stereotype.Service;
@@ -20,10 +22,9 @@ import java.util.UUID;
 public class BubbleService {
     private final BubbleRepository bubbleRepository;
 
-
     public Bubble findByPathAndWorkspaceId(String path, UUID workspaceId) {
         return bubbleRepository.findByPathAndWorkspaceId(path, workspaceId)
-                .orElseThrow(() -> new IllegalArgumentException("Not Found at findByPathAndWorkspaceId"));
+                .orElseThrow(() -> new BubbleNotFoundException("Bubble Not Found"));
     }
 
     public List<Bubble> findChildrenByBubbleAndWorkspaceId(Bubble bubble, UUID workspaceId) {
@@ -31,8 +32,10 @@ public class BubbleService {
                 bubble.getPath(), workspaceId);
     }
 
-    public Optional<Bubble> getMaxPathDepth(UUID workspaceId) {
-        return bubbleRepository.findTopByWorkspaceIdOrderByPathDepthDesc(workspaceId);
+    public int getMaxPathDepth(UUID workspaceId) {
+        Bubble bubble = bubbleRepository.findTopByWorkspaceIdOrderByPathDepthDesc(workspaceId)
+                .orElseThrow(() -> new NoBubbleInWorkspaceException("No Bubble In Workspace " + workspaceId));
+        return bubble.getPathDepth();
     }
 
     public List<Bubble> findBubblesByPathDepthAndWorkspaceId(int pathDepth, UUID workspaceId) {
@@ -44,6 +47,7 @@ public class BubbleService {
         bubbleRepository.deleteByPathStartingWithAndWorkspaceId(path, workspaceId);
     }
 
+    @Transactional
     public Bubble saveBubble(Bubble bubble) {
         return bubbleRepository.save(bubble);
     }
@@ -56,15 +60,12 @@ public class BubbleService {
     public Bubble updateBubble(Long id, String name, int top, int leftmost, int width, int height,
                                String path, int pathDepth, boolean bubblized, boolean visible, Workspace workspace) {
         Bubble bubble = bubbleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bubble not found"));
+                .orElseThrow(() -> new BubbleNotFoundException("Bubble not found"));
         bubble.update(name, top, leftmost, width, height, path, pathDepth, bubblized, visible, workspace);
         return bubbleRepository.save(bubble);
     }
 
-    public List<Bubble> getBubblesByWorkspaceAndPath(Workspace workspace, String path) {
-        return bubbleRepository.findByWorkspaceAndPathStartingWith(workspace, path);
-    }
-
+    @Transactional
     public void updateBubblePaths(Workspace workspace, String oldPath, String newPath) {
         int oldPathSlashCount = countOccurrences(oldPath, '/');
         //oldPath로 시작하는 모든 버블들, 즉 해당 버블과 그 자녀들을 가져온다.

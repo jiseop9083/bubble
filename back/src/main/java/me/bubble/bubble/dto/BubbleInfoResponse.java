@@ -10,7 +10,7 @@ import java.util.List;
 
 @Getter
 @JsonPropertyOrder({ "path", "top", "left", "width", "height", "isVisible", "isBubblized", "curves", "children" })
-public class BubbleResponse{
+public class BubbleInfoResponse {
     private final String name;
     private final String path;
     private final int top;
@@ -24,8 +24,8 @@ public class BubbleResponse{
     @JsonProperty("isBubblized")
     private final boolean bubblized;
 
-    private final List<CurveResponse> curves;
-    public BubbleResponse(Bubble bubble, List<CurveResponse> curves) {
+    private final List<CurveInfoResponse> curves;
+    public BubbleInfoResponse(Bubble bubble, List<CurveInfoResponse> curves) {
         this.name = bubble.getName();
         this.path = bubble.getPath();
         this.top = bubble.getTop();

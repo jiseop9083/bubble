@@ -38,11 +38,12 @@ public class CurveService {
     public Curve updateCurve(Long id, String color,
                              int thickness, Bubble bubble, String controlPoint) {
         Curve curve = curveRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Curve not found"));
+                .orElseThrow(() -> new CurveNotFoundException("Curve not found"));
         curve.update(color, thickness, bubble, controlPoint);
         return curveRepository.save(curve);
     }
 
+    @Transactional
     public Curve saveCurve(Curve curve) {
         return curveRepository.save(curve);
     }
