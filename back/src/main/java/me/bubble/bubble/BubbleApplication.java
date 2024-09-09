@@ -20,8 +20,11 @@ public class BubbleApplication {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**").allowedOrigins("http://localhost:5173")
-                        .allowCredentials(true);
+                registry.addMapping("/**")
+                        .allowedOrigins("http://localhost:5173", "https://app.mongle.xyz")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE") // 필요한 경우 메서드 추가
+                        .allowedHeaders("*") // 모든 헤더 허용
+                        .allowCredentials(true); // 인증 정보 허용
             }
         };
     }

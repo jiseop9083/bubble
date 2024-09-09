@@ -38,6 +38,7 @@ public class SecurityConfig {
                                 .requestMatchers(CorsUtils::isPreFlightRequest).permitAll() // Pre-flight 요청 허용
                                 .requestMatchers("/api/auth/**").permitAll() // 인증 필요 없는 경로, 인증 및 권한 심사 생략
                                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/api-test").permitAll() // Swagger 문서 접근 허용
+                                .requestMatchers("/error").permitAll() // 에러 처리 경로 인증 없이 접근 가능.
                                 .anyRequest().authenticated() // 나머지 요청은 인증 필요
                 )
                 .cors(Customizer.withDefaults()) // CORS 기본 설정
